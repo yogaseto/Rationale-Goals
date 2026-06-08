@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance Rationale — Direktorat Network H1/2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:#e63329; --red-dark:#b52720; --black:#0d0d0d;
+  --g900:#1a1a1a; --g800:#252525; --g700:#333; --g600:#555;
+  --g400:#888; --g200:#ddd; --g100:#f4f4f4; --white:#fff;
+  --green:#16a34a; --amber:#d97706; --blue:#2563eb;
+  --mono:'DM Mono',monospace; --sans:'Sora',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--g100);color:var(--black);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--black);}
+.login-box{background:var(--g900);border:1px solid #333;border-top:3px solid var(--red);padding:40px 36px;width:360px;border-radius:4px;}
+.login-box h2{color:var(--white);font-size:18px;margin-bottom:4px;}
+.login-box .sub{color:var(--g400);font-size:12px;margin-bottom:28px;font-family:var(--mono);}
+.login-box label{display:block;font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;color:var(--g400);margin-bottom:6px;}
+.login-box select,.login-box input[type=password]{width:100%;background:#111;border:1px solid #444;color:var(--white);font-family:var(--mono);font-size:13px;padding:9px 12px;border-radius:3px;margin-bottom:16px;outline:none;}
+.login-box select:focus,.login-box input:focus{border-color:var(--red);}
+.btn-login{width:100%;background:var(--red);color:var(--white);border:none;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:11px;border-radius:3px;cursor:pointer;}
+.btn-login:hover{background:var(--red-dark);}
+.login-err{color:#f87171;font-size:12px;font-family:var(--mono);margin-top:8px;display:none;}
+
+/* APP */
+#app{display:none;}
+header{background:var(--black);color:var(--white);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--red);}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.badge-tsel{background:var(--red);color:var(--white);font-family:var(--mono);font-size:10px;padding:3px 8px;letter-spacing:1px;text-transform:uppercase;}
+header h1{font-size:14px;font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.user-pill{background:#222;border:1px solid #333;color:var(--g400);font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:20px;}
+.user-pill strong{color:var(--white);}
+.btn-logout{background:transparent;border:1px solid #444;color:var(--g400);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:5px 12px;cursor:pointer;border-radius:3px;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+.sync-status{font-family:var(--mono);font-size:10px;color:var(--g400);}
+.sync-status.ok{color:var(--green);}
+.sync-status.err{color:var(--red);}
+
+/* TABS */
+nav.tabs{background:var(--g900);display:flex;padding:8px 28px 0;gap:2px;overflow-x:auto;scrollbar-width:none;}
+nav.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:var(--mono);font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--g400);background:transparent;border:none;border-bottom:2px solid transparent;padding:8px 16px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--red);border-bottom-color:var(--red);background:rgba(230,51,41,.08);}
+
+/* MAIN */
+main{padding:24px 28px 60px;max-width:1300px;margin:0 auto;}
+.sheet{display:none;}.sheet.active{display:block;}
+.section-title{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;color:var(--red);margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid var(--g200);}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--g200);border-radius:4px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:11px;font-weight:600;color:var(--g600);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-family:var(--mono);}
+
+/* KPI */
+.kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.kpi-box{flex:1;min-width:120px;background:var(--white);border:1px solid var(--g200);border-radius:4px;padding:14px 16px;}
+.kpi-label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;color:var(--g400);margin-bottom:6px;}
+.kpi-val{font-size:26px;font-weight:700;font-family:var(--mono);color:var(--black);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--g400);margin-top:4px;}
+
+/* MEMBER CARD */
+.member-entry-card{background:var(--white);border:1px solid var(--g200);border-radius:6px;margin-bottom:16px;overflow:hidden;}
+.mec-header{background:var(--g900);color:var(--white);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.mec-name{font-size:15px;font-weight:600;}
+.mec-band{font-family:var(--mono);font-size:10px;color:var(--g400);margin-top:2px;}
+.mec-total-score{text-align:right;}
+.mec-total-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--white);}
+.mec-total-label{font-family:var(--mono);font-size:9px;color:var(--g400);text-transform:uppercase;letter-spacing:1px;}
+.mec-body{padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.score-section{border:1px solid var(--g200);border-radius:4px;padding:14px;}
+.score-section-title{font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--g600);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;}
+.score-option{display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:3px;cursor:pointer;margin-bottom:6px;border:1px solid transparent;transition:all .15s;}
+.score-option:hover{background:#f9f9f9;}
+.score-option.selected{background:#fff5f5;border-color:var(--red);}
+.score-option input[type=radio]{margin-top:3px;accent-color:var(--red);flex-shrink:0;}
+.score-option-label{font-size:12px;font-weight:600;color:var(--black);}
+.score-option-desc{font-size:11px;color:var(--g400);font-family:var(--mono);margin-top:2px;}
+.score-option-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--red);margin-left:auto;white-space:nowrap;padding-left:8px;align-self:center;}
+.evidence-box{margin-top:10px;}
+.evidence-box label{display:block;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;color:var(--g400);margin-bottom:4px;}
+.evidence-box textarea{width:100%;font-family:var(--mono);font-size:11px;color:var(--black);background:var(--g100);border:1px solid var(--g200);border-radius:3px;padding:7px 10px;outline:none;resize:vertical;min-height:68px;transition:border-color .15s;}
+.evidence-box textarea:focus{border-color:var(--red);background:var(--white);}
+.ig-input{width:100%;background:var(--g100);border:1px solid var(--g200);border-radius:3px;padding:8px 10px;font-family:var(--mono);font-size:15px;outline:none;transition:border-color .15s;margin-bottom:4px;}
+.ig-input:focus{border-color:var(--blue);background:var(--white);}
+.ig-hint{font-size:10px;color:var(--g400);font-family:var(--mono);}
+
+/* ANALYSIS */
+.analysis-wrap{padding:0 20px 16px;}
+.analysis-box{padding:14px 18px;border-radius:4px;border-left:4px solid var(--g200);background:#fafafa;}
+.analysis-box.eligible{border-left-color:var(--green);background:#f0fdf4;}
+.analysis-box.warning{border-left-color:var(--amber);background:#fffbeb;}
+.analysis-box.ineligible{border-left-color:var(--red);background:#fff5f5;}
+.analysis-title{font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.analysis-title.eligible{color:var(--green);}
+.analysis-title.warning{color:var(--amber);}
+.analysis-title.ineligible{color:var(--red);}
+.check-row{font-size:12px;margin-bottom:3px;display:flex;gap:6px;align-items:flex-start;}
+.prereq-section{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.07);}
+.prereq-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;color:var(--g400);margin-bottom:6px;}
+.prereq-item{font-size:12px;color:var(--g700);margin-bottom:3px;display:flex;gap:6px;}
+.prereq-item::before{content:'→';color:var(--g400);font-family:var(--mono);flex-shrink:0;}
+
+/* SAVE BAR */
+.save-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#fff8f8;border:1px solid #fecaca;border-radius:4px;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.save-bar p{font-size:12px;color:var(--g600);}
+.btn-save{background:var(--red);color:var(--white);border:none;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1px;padding:9px 24px;cursor:pointer;border-radius:3px;}
+.btn-save:hover{background:var(--red-dark);}
+.btn-save:disabled{background:#ccc;cursor:not-allowed;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:var(--g900);color:var(--white);font-family:var(--mono);font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:9px 12px;text-align:left;white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--g100);vertical-align:top;}
+tr:hover td{background:#f9f9f9;}
+.td-mono{font-family:var(--mono);}
+.td-group{background:#f4f4f4!important;}
+.td-group td{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--g400);padding:6px 12px;}
+.evidence-preview{font-size:11px;color:var(--g400);font-family:var(--mono);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* BADGES */
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:2px;text-transform:uppercase;letter-spacing:.5px;}
+.b-p1{background:#dcfce7;color:#15803d;} .b-p2{background:#dbeafe;color:#1d4ed8;}
+.b-p3a{background:#fef9c3;color:#854d0e;} .b-p3b{background:#fee2e2;color:#b91c1c;}
+.b-p3c{background:#f3f4f6;color:#4b5563;} .b-p4{background:#fce7f3;color:#9d174d;}
+.b-na{background:#f3f4f6;color:#9ca3af;}
+.b-elig{background:#dcfce7;color:#15803d;} .b-warn{background:#fef9c3;color:#854d0e;}
+.b-inelig{background:#fee2e2;color:#b91c1c;}
+.b-band{background:#e0e7ff;color:#3730a3;}
+
+/* PARAM */
+.param-card{background:var(--white);border:1px solid var(--g200);border-radius:4px;padding:16px 20px;margin-bottom:12px;display:flex;gap:20px;align-items:flex-start;}
+.param-code{font-family:var(--mono);font-size:28px;font-weight:700;min-width:60px;}
+.param-range{font-family:var(--mono);font-size:12px;margin-top:2px;}
+.param-criteria ul{list-style:none;padding:0;}
+.param-criteria li{font-size:12px;color:var(--g700);padding:3px 0;line-height:1.6;}
+.param-criteria li::before{content:'→ ';color:var(--g400);font-family:var(--mono);}
+
+/* LOADING */
+.loading{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--g400);padding:20px 0;}
+.spinner{width:16px;height:16px;border:2px solid var(--g200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--white);font-family:var(--mono);font-size:12px;padding:10px 18px;border-radius:4px;border-left:3px solid var(--green);opacity:0;transform:translateY(10px);transition:all .2s;pointer-events:none;z-index:999;max-width:320px;}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.err{border-left-color:var(--red);}
+
+@media(max-width:768px){
+  .mec-body{grid-template-columns:1fr;}
+  main{padding:14px 14px 60px;}
+  nav.tabs{padding:6px 14px 0;}
+  header{padding:0 14px;}
+  header h1{font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>Performance Rationale</h2>
+    <p class="sub">Direktorat Network — H1 / 2026</p>
+    <label>Pilih Pengguna</label>
+    <select id="login-user">
+      <option value="">-- Pilih --</option>
+      <option value="gm">GM (Yoga) — Semua Data</option>
+      <option value="gatot">Gatot — Manager</option>
+      <option value="basyuni">Basyuni — Manager</option>
+      <option value="zaki">Zaki — Manager</option>
+    </select>
+    <label>PIN</label>
+    <input type="password" id="login-pin" placeholder="Masukkan PIN"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">Masuk →</button>
+    <div class="login-err" id="login-err">PIN tidak valid.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="hdr-left">
+      <span class="badge-tsel">Telkomsel</span>
+      <h1>Performance Rationale — H1/2026</h1>
+    </div>
+    <div class="hdr-right">
+      <span class="sync-status" id="sync-status">●&nbsp;Offline</span>
+      <span class="user-pill">Login: <strong id="disp-user">—</strong></span>
+      <button class="btn-logout" onclick="doLogout()">Keluar</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="showSheet('input',this)">✏️ Input Skor</button>
+    <button class="tab-btn gm-only" style="display:none" onclick="showSheet('overview',this)">📊 Overview GM</button>
+    <button class="tab-btn gm-only" style="display:none" onclick="showSheet('dashboard',this)">📈 Dashboard</button>
+    <button class="tab-btn" onclick="showSheet('param',this)">📋 Parameter Kualifikasi</button>
+  </nav>
+
+  <main>
+    <!-- INPUT -->
+    <div class="sheet active" id="sheet-input">
+      <p class="section-title" id="input-label">Input Inisial Skor</p>
+      <div id="input-cards"></div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="sheet" id="sheet-overview">
+      <p class="section-title">Overview Semua Skor — GM View</p>
+      <div class="kpi-row" id="gm-kpis"></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn-save" onclick="loadOverview()" style="background:var(--g900)">↻ Refresh Data</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Rekapitulasi Inisial Skor H1/2026</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Nama</th><th>Band</th><th>Manager</th>
+              <th>IG Score</th><th>Competency</th><th>Attitude</th>
+              <th>Total</th><th>Kualifikasi</th><th>Eligibilitas</th>
+              <th>Last Update</th>
+            </tr></thead>
+            <tbody id="overview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="sheet" id="sheet-dashboard">
+      <p class="section-title">Dashboard Performansi — Semua Periode</p>
+      <div id="mgr-alert-box"></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Perbandingan Skor — Semua Periode</div>
+        <div id="perfChart" style="overflow-x:auto;padding:8px 0"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Skor H1/2026 (Inisial) — Semua Anggota</div>
+        <div id="currentChart" style="overflow-x:auto;padding:8px 0"></div>
+      </div>
+    </div>
+
+    <!-- PARAM -->
+    <div class="sheet" id="sheet-param">
+      <p class="section-title">Parameter Kualifikasi — Rubrik Penilaian</p>
+      <div id="param-list"></div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx7cG4nzyl55T97-ti_M547xxQ2TcLI18xIafYEGkZNxiGNf7mq5VYMh5mUjyiEe9Xg/exec';
+
+const PINS = { gm:'gm2025', gatot:'gtot01', basyuni:'bsyn01', zaki:'zki001' };
+
+const ROLES = {
+  gm:      { label:'GM (Yoga)', reports:['gatot','basyuni','zaki'], isGM:true },
+  gatot:   { label:'Gatot',    reports:['pram','fifi'],             isGM:false },
+  basyuni: { label:'Basyuni',  reports:['ronald','rizkon'],         isGM:false },
+  zaki:    { label:'Zaki',     reports:['wulan','faisal'],          isGM:false },
+};
+
+const MEMBERS = {
+  pram:    { name:'Pram',    band:'BP2', manager:'gatot'   },
+  fifi:    { name:'Fifi',    band:'BP3', manager:'gatot'   },
+  ronald:  { name:'Ronald',  band:'BP2', manager:'basyuni' },
+  rizkon:  { name:'Rizkon',  band:'BP2', manager:'basyuni' },
+  wulan:   { name:'Wulan',   band:'BP2', manager:'zaki'    },
+  faisal:  { name:'Faisal',  band:'BP2', manager:'zaki'    },
+  gatot:   { name:'Gatot',   band:'BP2', manager:'gm'      },
+  basyuni: { name:'Basyuni', band:'BP3', manager:'gm'      },
+  zaki:    { name:'Zaki',    band:'BP2', manager:'gm'      },
+};
+
+const PARAM = [
+  { code:'P1',  range:'≥ 120',    color:'#15803d',
+    prereq:['Lebih dari 50% IG Core melampaui target (sisanya sesuai target)',
+            'Terlibat aktif ≥1 proyek Non-BAU dengan dampak hingga 2 level unit kerja di atasnya',
+            'Penguasaan kompetensi sesuai persyaratan posisi yang lebih tinggi',
+            'Implementasi 12 TWP secara konsisten, kualitas sempurna (=100%)',
+            'Menghasilkan inovasi dengan dampak hingga 2 level unit kerja di atasnya'] },
+  { code:'P2',  range:'110–119',  color:'#1d4ed8',
+    prereq:['Tepat 50% IG Core melampaui target (sisanya sesuai target)',
+            'Terlibat aktif ≥1 proyek Non-BAU dengan dampak hingga 1 level unit kerja di atasnya',
+            'Kompetensi melampaui kebutuhan posisi saat ini',
+            'Implementasi 12 TWP dengan kualitas luar biasa (>90%)',
+            'Menghasilkan improvement dengan dampak hingga 1 level unit kerja di atasnya'] },
+  { code:'P3a', range:'107–109',  color:'#854d0e',
+    prereq:['Kurang dari 50% IG Core melampaui target (sisanya sesuai target)',
+            'Terlibat aktif ≥2 proyek Non-BAU dengan dampak pada unit kerjanya',
+            'Kompetensi (teknikal & perilaku) sesuai kebutuhan posisi saat ini',
+            'Fokus mengembangkan kompetensi untuk kebutuhan posisi yang lebih tinggi',
+            'Implementasi 12 TWP dengan kualitas baik (>80%)',
+            'Aktif berkontribusi dalam kegiatan sosial (AoC, kepanitiaan, kepengurusan, dsb.)'] },
+  { code:'P3b', range:'104–106',  color:'#b91c1c',
+    prereq:['Hanya 1 IG Core melampaui target (sisanya sesuai target)',
+            'Terlibat aktif ≥1 proyek Non-BAU dengan dampak pada unit kerjanya',
+            'Fokus menutup sebagian kecil gap kompetensi',
+            'Implementasi 12 TWP dengan kualitas baik (>70%)',
+            'Peningkatan sikap/perilaku masih sedikit diperlukan pada aspek Input dan/atau Proses',
+            'Aktif berkontribusi dalam kegiatan sosial'] },
+  { code:'P3c', range:'100–103',  color:'#4b5563',
+    prereq:['Seluruh IG Core sesuai target (tidak ada yang melampaui)',
+            'Tidak mengerjakan pekerjaan selain BAU (tidak ada extra-miles)',
+            'Fokus menutup sebagian kecil gap kompetensi',
+            'Implementasi 12 TWP dengan kualitas baik (>70%)',
+            'Peningkatan sikap/perilaku masih sedikit diperlukan pada aspek Input dan/atau Proses'] },
+  { code:'P4',  range:'< 100',    color:'#9d174d',
+    prereq:['Pencapaian IG Core di bawah target pada satu atau lebih indikator',
+            'Perlu rencana pengembangan dan perbaikan kinerja yang signifikan'] },
+];
+
+// ═══════════════════════════════════════════════════════════
+// HISTORICAL SCORES
+// ═══════════════════════════════════════════════════════════
+const HISTORICAL = {
+  periods: ['H1-2024', 'H2-2024', 'H1-2025', 'H2-2025'],
+  scores: {
+    basyuni: [117, 115, 109, 109],
+    ronald:  [114, 109, 118, 109],
+    rizkon:  [112, 110, 113, 119],
+    gatot:   [108, 109, 115, 117],
+    fifi:    [109, 112, 108, 118],
+    pram:    [108, 107, 109, 109],
+    brian:   [107, 107, 108, 107],
+    aris:    [108, 107, 107, 109],
+    zaki:    [null, 108, 107, 108],
+    wulan:   [119, 115, 115, 117],
+    faisal:  [null, null, null, 108],
+  }
+};
+
+// Check if a manager scored BELOW AVERAGE of other managers
+// for 2 consecutive periods (Interpretation B)
+function checkManagerAlert(managerKey, currentScore) {
+  const hist = HISTORICAL.scores[managerKey];
+  if (!hist) return null;
+
+  const managerKeys = ['gatot', 'basyuni', 'zaki'];
+  if (!managerKeys.includes(managerKey)) return null;
+
+  const periods = HISTORICAL.periods;
+  const alerts = [];
+  let consecutive = 0;
+
+  for (let i = 0; i < periods.length; i++) {
+    const score = hist[i];
+    if (score === null || score === undefined) { consecutive = 0; continue; }
+
+    // Average of OTHER managers that period
+    const otherMgrs = managerKeys.filter(k => k !== managerKey);
+    const otherScores = otherMgrs
+      .map(k => HISTORICAL.scores[k][i])
+      .filter(v => v !== null && v !== undefined);
+    const avgOthers = otherScores.length
+      ? Math.round((otherScores.reduce((a,b) => a+b, 0) / otherScores.length) * 10) / 10
+      : null;
+
+    if (avgOthers && score < avgOthers) {
+      consecutive++;
+      alerts.push({
+        period: periods[i],
+        score,
+        avgOthers,
+        gap: Math.round((avgOthers - score) * 10) / 10,
+        consecutive
+      });
+    } else {
+      consecutive = 0;
+    }
+  }
+
+  // Find stretches of 2+ consecutive periods below average
+  const triggered = [];
+  let streak = [];
+  alerts.forEach((a, idx) => {
+    if (a.consecutive >= 2) {
+      if (streak.length === 0) {
+        // Add the previous entry too (start of streak)
+        const prev = alerts[idx - 1];
+        if (prev) streak.push(prev);
+      }
+      streak.push(a);
+    } else {
+      if (streak.length >= 2) triggered.push(...streak);
+      streak = [];
+    }
+  });
+  if (streak.length >= 2) triggered.push(...streak);
+
+  // Deduplicate
+  const unique = triggered.filter((v,i,a) => a.findIndex(x=>x.period===v.period)===i);
+  return unique.length >= 2 ? unique : null;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentUser = null;
+// Local draft cache — in case network is slow, user can still type
+let localDraft = {};
+
+function draftKey() { return 'draft_' + currentUser; }
+function loadDraft() {
+  try { return JSON.parse(localStorage.getItem(draftKey()) || '{}'); } catch(e) { return {}; }
+}
+function saveDraft(d) { localStorage.setItem(draftKey(), JSON.stringify(d)); }
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN / LOGOUT
+// ═══════════════════════════════════════════════════════════
+function doLogin() {
+  const user = document.getElementById('login-user').value;
+  const pin  = document.getElementById('login-pin').value;
+  const err  = document.getElementById('login-err');
+  if (!user) { showErr('Pilih pengguna terlebih dahulu.'); return; }
+  if (PINS[user] !== pin) { showErr('PIN tidak valid.'); return; }
+  err.style.display = 'none';
+  currentUser = user;
+  localDraft  = loadDraft();
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('disp-user').textContent = ROLES[user].label;
+  if (ROLES[user].isGM) {
+    document.querySelectorAll('.gm-only').forEach(el => el.style.display = '');
+  }
+  renderParamList();
+  renderInputSheet();
+}
+
+function showErr(msg) {
+  const err = document.getElementById('login-err');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+function doLogout() {
+  currentUser = null; localDraft = {};
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-pin').value = '';
+  document.getElementById('login-user').value = '';
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+  document.getElementById('sheet-input').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  document.querySelectorAll('.gm-only').forEach(el => el.style.display = 'none');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHEET ROUTING
+// ═══════════════════════════════════════════════════════════
+function showSheet(id, btn) {
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sheet-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'overview') loadOverview();
+  if (id === 'dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCORE HELPERS
+// ═══════════════════════════════════════════════════════════
+function calcTotal(ig, comp, att) {
+  return Math.round((parseFloat(ig||0) + parseFloat(comp||0) + parseFloat(att||0)) * 10) / 10;
+}
+
+// Tier dari nilai A saja (tanpa pengaruh B dan C)
+function getTierFromA(a) {
+  const v = parseFloat(a||0);
+  if (v >= 115) return 'P1';
+  if (v >= 110) return 'P2';
+  if (v >= 107) return 'P3a';
+  if (v >= 104) return 'P3b';
+  if (v >= 100) return 'P3c';
+  return 'P4';
+}
+
+// Ceiling dari B dan C berdasarkan Parameter Kualifikasi
+function getCeilingFromBC(b, c) {
+  const bv = parseFloat(b||0);
+  const cv = parseFloat(c||0);
+  if (bv >= 2 && cv >= 2) return 'P1';   // Advanced + Proactive → bisa P1
+  if (bv >= 2 && cv >= 1) return 'P2';   // Advanced + Standard → maks P2
+  if (bv >= 1 && cv >= 2) return 'P3a';  // Standard + Proactive → maks P3a (B tidak cukup untuk P2)
+  if (bv >= 1 && cv >= 1) return 'P3a';  // Standard + Standard → maks P3a
+  return 'P4';
+}
+
+const KUAL_ORDER = ['P1','P2','P3a','P3b','P3c','P4'];
+
+function minKual(k1, k2) {
+  // Returns the lower (worse) kualifikasi between two
+  const i1 = KUAL_ORDER.indexOf(k1);
+  const i2 = KUAL_ORDER.indexOf(k2);
+  return KUAL_ORDER[Math.max(i1, i2)];
+}
+
+function getKualClass(code) {
+  const map = { P1:'b-p1', P2:'b-p2', P3a:'b-p3a', P3b:'b-p3b', P3c:'b-p3c', P4:'b-p4' };
+  return map[code] || 'b-na';
+}
+
+// Main: determine fair kualifikasi from A, B, C
+function getFairKual(ig, comp, att) {
+  if (ig==='' || ig===null || ig===undefined) return null;
+  if (parseFloat(ig||0) < 100) return { code:'P4', cls:'b-p4' };
+  const tierA   = getTierFromA(ig);
+  const ceiling = getCeilingFromBC(comp, att);
+  const final   = minKual(tierA, ceiling);
+  return { code: final, cls: getKualClass(final) };
+}
+
+// Legacy wrapper untuk backward compat di overview
+function getKual(total) {
+  if (total === null || total === undefined || total === '') return null;
+  const t = parseFloat(total);
+  if (t >= 120) return { code:'P1',  cls:'b-p1'  };
+  if (t >= 110) return { code:'P2',  cls:'b-p2'  };
+  if (t >= 107) return { code:'P3a', cls:'b-p3a' };
+  if (t >= 104) return { code:'P3b', cls:'b-p3b' };
+  if (t >= 100) return { code:'P3c', cls:'b-p3c' };
+  return              { code:'P4',  cls:'b-p4'  };
+}
+
+function analyzeEligibility(sc, total) {
+  const ig   = parseFloat(sc.ig_score  || 0);
+  const comp = parseFloat(sc.comp_score|| 0);
+  const att  = parseFloat(sc.att_score || 0);
+  const igEv   = (sc.ig_evidence   || '').trim();
+  const compEv = (sc.comp_evidence || '').trim();
+  const attEv  = (sc.att_evidence  || '').trim();
+
+  if (!sc.ig_score) return null;
+
+  // P4 override
+  if (ig < 100) {
+    return {
+      k: { code:'P4', cls:'b-p4' },
+      kGuidance: { code:'P4', cls:'b-p4' },
+      tierA: 'P4', ceiling: 'P4', final: 'P4',
+      checks: [{ label:'IG Score < 100% — perlu action plan perbaikan kinerja', ok: false }],
+      status: 'ineligible',
+      passed: 0, total_checks: 1,
+      remarks: [],
+      remarkType: 'ineligible'
+    };
+  }
+
+  const tierA   = getTierFromA(ig);
+  const ceiling = getCeilingFromBC(comp, att);
+  const final   = minKual(tierA, ceiling);
+  const kFinal  = { code: final, cls: getKualClass(final) };
+
+  // Build prerequisite checks based on FINAL kualifikasi
+  let checks = [];
+  if (final === 'P1') {
+    checks = [
+      { label:'IG Score ≥ 115% (>50% KR melampaui target)',              ok: ig >= 115 },
+      { label:'Competency Advanced',                                       ok: comp >= 2 },
+      { label:'Attitude Proactive + High Engagement',                     ok: att >= 2 },
+      { label:'Evidence IG mencantumkan detail KR yang melampaui target', ok: igEv.length > 15 },
+      { label:'Evidence Competency mencantumkan task force / sertifikasi',ok: compEv.length > 15 },
+      { label:'Evidence Attitude mencantumkan kontribusi NPA / budaya',   ok: attEv.length > 15 },
+    ];
+  } else if (final === 'P2') {
+    checks = [
+      { label:'IG Score 110–114% (±50% KR melampaui target)',             ok: ig >= 110 && ig < 115 },
+      { label:'Competency Advanced',                                       ok: comp >= 2 },
+      { label:'Evidence IG tersedia dan memadai',                         ok: igEv.length > 15 },
+      { label:'Evidence Competency tersedia dan memadai',                 ok: compEv.length > 15 },
+    ];
+  } else if (final === 'P3a') {
+    checks = [
+      { label:'IG Score 107–109% (<50% KR melampaui target)',             ok: ig >= 107 && ig < 110 },
+      { label:'Competency minimal Standard',                               ok: comp >= 1 },
+      { label:'Attitude minimal Standard',                                ok: att >= 1 },
+      { label:'Evidence IG tersedia',                                     ok: igEv.length > 10 },
+      { label:'Evidence Attitude tersedia',                               ok: attEv.length > 10 },
+    ];
+  } else if (final === 'P3b') {
+    checks = [
+      { label:'IG Score 104–106% (1 KR melampaui target)',                ok: ig >= 104 && ig < 107 },
+      { label:'Competency minimal Standard',                               ok: comp >= 1 },
+      { label:'Evidence IG tersedia',                                     ok: igEv.length > 10 },
+    ];
+  } else if (final === 'P3c') {
+    checks = [
+      { label:'IG Score 100–103% (seluruh KR sesuai target, tidak ada yang melampaui)', ok: ig >= 100 && ig < 104 },
+      { label:'Evidence IG tersedia',                                     ok: igEv.length > 10 },
+    ];
+  }
+
+  const passed = checks.filter(c => c.ok).length;
+  const ratio  = checks.length ? passed / checks.length : 1;
+  const status = ratio >= 1 ? 'eligible' : ratio >= 0.6 ? 'warning' : 'ineligible';
+
+  // ── REMARKS SYSTEM ──
+  const remarks = [];
+  const tierAIdx    = KUAL_ORDER.indexOf(tierA);
+  const ceilingIdx  = KUAL_ORDER.indexOf(ceiling);
+  const finalIdx    = KUAL_ORDER.indexOf(final);
+
+  // Remark tipe 1: Ceiling gap — A lebih tinggi dari ceiling B+C
+  if (tierAIdx < ceilingIdx) {
+    const gapDesc = comp < 2 && att < 2
+      ? 'Competency dan Attitude keduanya masih Meet Standard'
+      : comp < 2
+      ? 'Competency masih Meet Standard (belum Advanced)'
+      : 'Attitude masih Meet Standard (belum Proactive/High Engagement)';
+    remarks.push({
+      type: 'ceiling_gap',
+      icon: '⚠',
+      color: '#d97706',
+      text: `IG Score mencapai tier ${tierA}, namun ${gapDesc}. Sesuai guidance: ${final}. VP dapat mempertimbangkan upgrade ke ${tierA} apabila ada justifikasi kuat yang belum tercatat dalam evidence.`
+    });
+  }
+
+  // Remark tipe 2: Overqualified behavior — B+C kuat tapi A rendah
+  if (ceilingIdx < tierAIdx && (comp >= 2 || att >= 2)) {
+    remarks.push({
+      type: 'strong_behavior',
+      icon: '💡',
+      color: '#2563eb',
+      text: `Extra miles ${comp>=2?'Competency Advanced':''}${comp>=2&&att>=2?' + ':''}${att>=2?'Attitude Proactive':''}  sangat kuat, namun pencapaian IG Core berada di tier ${tierA}. Sesuai guidance: ${final}. VP dapat mempertimbangkan apakah kontribusi non-BAU cukup signifikan untuk justifikasi kualifikasi lebih tinggi.`
+    });
+  }
+
+  // Remark tipe 3: Borderline — score di batas bawah tier
+  const tierBoundaries = { P1:115, P2:110, P3a:107, P3b:104, P3c:100 };
+  const boundary = tierBoundaries[final];
+  if (boundary && ig >= boundary && ig < boundary + 2) {
+    remarks.push({
+      type: 'borderline',
+      icon: '📊',
+      color: '#4b5563',
+      text: `IG Score ${ig}% berada di batas bawah ${final} (minimum ${boundary}%). VP disarankan memverifikasi kualitas pencapaian KR secara kualitatif sebelum finalisasi.`
+    });
+  }
+
+  // Remark tipe 4: Clean eligible
+  if (remarks.length === 0 && status === 'eligible') {
+    remarks.push({
+      type: 'clean',
+      icon: '✓',
+      color: '#16a34a',
+      text: `Semua prerequisite terpenuhi. Kualifikasi ${final} sesuai guidance Parameter Kualifikasi.`
+    });
+  }
+
+  // Remark tipe 5: Evidence lemah
+  if (igEv.length <= 10 || compEv.length <= 10 || attEv.length <= 10) {
+    remarks.push({
+      type: 'evidence_weak',
+      icon: '📝',
+      color: '#9d174d',
+      text: `Evidence ${igEv.length<=10?'IG Score':''} ${compEv.length<=10?'Competency':''} ${attEv.length<=10?'Attitude':''} masih kosong atau terlalu singkat. VP disarankan meminta klarifikasi sebelum finalisasi.`.replace(/  +/g,' ').trim()
+    });
+  }
+
+  return {
+    k: kFinal,
+    kGuidance: kFinal,
+    tierA, ceiling, final,
+    checks, status, passed,
+    total_checks: checks.length,
+    remarks
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER INPUT SHEET
+// ═══════════════════════════════════════════════════════════
+function renderInputSheet() {
+  const role = ROLES[currentUser];
+  document.getElementById('input-label').textContent =
+    role.isGM ? 'Input Inisial Skor — Direct Reports GM'
+              : `Input Inisial Skor — Tim ${role.label}`;
+
+  let html = `<div class="save-bar">
+    <p>Lengkapi IG Score, Competency, Attitude beserta evidence untuk setiap anggota tim. Klik <strong>Simpan & Kirim</strong> setelah selesai.</p>
+    <button class="btn-save" id="btn-submit" onclick="submitScores()">💾 Simpan & Kirim ke Database</button>
+  </div>`;
+
+  role.reports.forEach(key => {
+    const m  = MEMBERS[key];
+    const sc = localDraft[key] || {};
+    html += buildMemberCard(key, m, sc);
+  });
+
+  document.getElementById('input-cards').innerHTML = html;
+}
+
+function buildMemberCard(key, m, sc) {
+  const ig   = sc.ig_score   !== undefined ? sc.ig_score   : '';
+  const comp = sc.comp_score !== undefined ? sc.comp_score : '';
+  const att  = sc.att_score  !== undefined ? sc.att_score  : '';
+  const hasAll = ig !== '' && comp !== '' && att !== '';
+  const total  = hasAll ? calcTotal(ig, comp, att) : null;
+  const kual   = total !== null ? getFairKual(ig, comp, att) : null;
+  const anal   = total !== null ? analyzeEligibility(sc, total) : null;
+
+  const totalDisp = total !== null ? total.toFixed(1) : '—';
+  const kualDisp  = kual
+    ? `<span class="badge ${kual.cls}" style="margin-top:4px;display:inline-block">${kual.code}</span>`
+    : '<span class="badge b-na" style="margin-top:4px;display:inline-block">—</span>';
+
+  return `<div class="member-entry-card" id="card-${key}">
+    <div class="mec-header">
+      <div>
+        <div class="mec-name">${m.name}</div>
+        <div class="mec-band">${m.band}</div>
+      </div>
+      <div class="mec-total-score">
+        <div class="mec-total-val" id="tv-${key}">${totalDisp}</div>
+        <div class="mec-total-label">Total Score</div>
+        <div id="kd-${key}">${kualDisp}</div>
+      </div>
+    </div>
+    <div class="mec-body">
+
+      <!-- A: IG -->
+      <div class="score-section">
+        <div class="score-section-title">
+          <span class="dot" style="background:#3b82f6"></span>A — Inisial IG Score (%)
+        </div>
+        <input type="number" class="ig-input" step="0.1" min="0" max="200"
+          value="${ig}" placeholder="e.g. 100%"
+          oninput="onFieldChange('${key}','ig_score',this.value)"
+          onfocus="this.style.borderColor='var(--blue)'"
+          onblur="this.style.borderColor='var(--g200)'">
+        <div class="ig-hint">Masukkan persentase avg pencapaian IG Core & Strategic</div>
+        <div class="evidence-box" style="margin-top:10px">
+          <label>Evidence IG Score</label>
+          <textarea placeholder="Jelaskan detail pencapaian Key Results: apa yang above target, berapa yang on-target..."
+            oninput="onFieldChange('${key}','ig_evidence',this.value)">${sc.ig_evidence||''}</textarea>
+        </div>
+      </div>
+
+      <!-- B: COMPETENCY -->
+      <div class="score-section">
+        <div class="score-section-title">
+          <span class="dot" style="background:#16a34a"></span>B — Inisial Competency Score (%)
+        </div>
+        <label class="score-option ${comp=='1'?'selected':''}" id="co1-${key}"
+          onclick="selectRadio('${key}','comp_score','1','co1-${key}','co2-${key}')">
+          <input type="radio" name="comp-${key}" value="1" ${comp=='1'?'checked':''}>
+          <div><div class="score-option-label">Meet Standard</div>
+          <div class="score-option-desc">Kompetensi sesuai posisi saat ini</div></div>
+          
+        </label>
+        <label class="score-option ${comp=='2'?'selected':''}" id="co2-${key}"
+          onclick="selectRadio('${key}','comp_score','2','co2-${key}','co1-${key}')">
+          <input type="radio" name="comp-${key}" value="2" ${comp=='2'?'checked':''}>
+          <div><div class="score-option-label">Advanced</div>
+          <div class="score-option-desc">Advanced knowledge/skill + aktif di task force / mentorship / knowledge sharing</div></div>
+          
+        </label>
+        <div class="evidence-box">
+          <label>Evidence Competency</label>
+          <textarea placeholder="Sebutkan sertifikasi, task force yang diikuti, mentorship yang dijalankan, knowledge sharing sessions..."
+            oninput="onFieldChange('${key}','comp_evidence',this.value)">${sc.comp_evidence||''}</textarea>
+        </div>
+      </div>
+
+      <!-- C: ATTITUDE -->
+      <div class="score-section">
+        <div class="score-section-title">
+          <span class="dot" style="background:#d97706"></span>C — Inisial Attitude Score (%)
+        </div>
+        <label class="score-option ${att=='1'?'selected':''}" id="at1-${key}"
+          onclick="selectRadio('${key}','att_score','1','at1-${key}','at2-${key}')">
+          <input type="radio" name="att-${key}" value="1" ${att=='1'?'checked':''}>
+          <div><div class="score-option-label">Meet Standard</div>
+          <div class="score-option-desc">MAWP 100% terpenuhi</div></div>
+          
+        </label>
+        <label class="score-option ${att=='2'?'selected':''}" id="at2-${key}"
+          onclick="selectRadio('${key}','att_score','2','at2-${key}','at1-${key}')">
+          <input type="radio" name="att-${key}" value="2" ${att=='2'?'checked':''}>
+          <div><div class="score-option-label">Proactive + High Engagement</div>
+          <div class="score-option-desc">MAWP 100% + Proactive, High Engagement in Culture NPA</div></div>
+          
+        </label>
+        <div class="evidence-box">
+          <label>Evidence Attitude</label>
+          <textarea placeholder="Contoh kegiatan NPA, inisiatif budaya, AoC, kepanitiaan, kontribusi sosial di lingkungan kerja..."
+            oninput="onFieldChange('${key}','att_evidence',this.value)">${sc.att_evidence||''}</textarea>
+        </div>
+      </div>
+
+    </div>
+    <div id="anal-${key}">${anal ? buildAnalysis(anal) : buildAnalysisPlaceholder()}</div>
+  </div>`;
+}
+
+function buildAnalysisPlaceholder() {
+  return `<div class="analysis-wrap"><div class="analysis-box">
+    <span style="font-size:12px;color:var(--g400);font-family:var(--mono)">
+      Lengkapi IG Score, Competency, dan Attitude untuk melihat analisis kesesuaian kualifikasi.
+    </span>
+  </div></div>`;
+}
+
+function buildAnalysis(a) {
+  const icons  = { eligible:'✓ ELIGIBLE', warning:'⚠ PERLU REVIEW', ineligible:'✗ TIDAK ELIGIBLE' };
+
+  // Score breakdown header
+  const ig   = parseFloat(a.tierA ? 0 : 0);
+  const breakdown = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <span style="font-family:var(--mono);font-size:11px;background:#f3f4f6;padding:3px 8px;border-radius:3px;">
+        Tier A: <strong>${a.tierA||'—'}</strong>
+      </span>
+      <span style="font-family:var(--mono);font-size:11px;background:#f3f4f6;padding:3px 8px;border-radius:3px;">
+        Ceiling B+C: <strong>${a.ceiling||'—'}</strong>
+      </span>
+      <span style="font-family:var(--mono);font-size:11px;background:#1a1a1a;color:#fff;padding:3px 8px;border-radius:3px;">
+        Kualifikasi Guidance: <strong>${a.final||'—'}</strong>
+      </span>
+    </div>`;
+
+  // Prerequisite checks
+  const checks = a.checks.map(c =>
+    `<div class="check-row" style="color:${c.ok?'var(--green)':'var(--red)'}">
+      <span style="flex-shrink:0">${c.ok?'✓':'✗'}</span><span>${c.label}</span>
+    </div>`).join('');
+
+  // Remarks for VP
+  const remarksHtml = a.remarks && a.remarks.length ? `
+    <div style="margin-top:14px;border-top:1px solid rgba(0,0,0,.08);padding-top:12px;">
+      <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:8px;">
+        📋 Remarks untuk VP
+      </div>
+      ${a.remarks.map(r => `
+        <div style="display:flex;gap:8px;padding:8px 10px;border-radius:4px;margin-bottom:6px;
+          background:${r.color}18;border-left:3px solid ${r.color};">
+          <span style="flex-shrink:0;font-size:14px">${r.icon}</span>
+          <span style="font-size:12px;color:#333;line-height:1.6">${r.text}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  return `<div class="analysis-wrap"><div class="analysis-box ${a.status}">
+    <div class="analysis-title ${a.status}">${icons[a.status]} — Kualifikasi Guidance: ${a.k.code} &nbsp;(${a.passed}/${a.total_checks} checks)</div>
+    ${breakdown}
+    ${checks}
+    ${remarksHtml}
+  </div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIVE UPDATE
+// ═══════════════════════════════════════════════════════════
+function onFieldChange(key, field, value) {
+  if (!localDraft[key]) localDraft[key] = {};
+  localDraft[key][field] = value;
+  saveDraft(localDraft);
+  refreshCard(key);
+}
+
+function selectRadio(key, field, value, onId, offId) {
+  document.getElementById(onId).classList.add('selected');
+  document.getElementById(offId).classList.remove('selected');
+  onFieldChange(key, field, value);
+}
+
+function refreshCard(key) {
+  const sc  = localDraft[key] || {};
+  const ig  = sc.ig_score, comp = sc.comp_score, att = sc.att_score;
+  const hasAll = ig !== undefined && ig !== '' && comp !== undefined && comp !== '' && att !== undefined && att !== '';
+  const total  = hasAll ? calcTotal(ig, comp, att) : null;
+  const kual   = total !== null ? getFairKual(sc.ig_score, sc.comp_score, sc.att_score) : null;
+  const anal   = total !== null ? analyzeEligibility(sc, total) : null;
+
+  document.getElementById('tv-' + key).textContent = total !== null ? total.toFixed(1) : '—';
+  document.getElementById('kd-' + key).innerHTML   = kual
+    ? `<span class="badge ${kual.cls}" style="margin-top:4px;display:inline-block">${kual.code}</span>`
+    : '<span class="badge b-na" style="margin-top:4px;display:inline-block">—</span>';
+  document.getElementById('anal-' + key).innerHTML = anal
+    ? buildAnalysis(anal) : buildAnalysisPlaceholder();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SUBMIT TO GOOGLE SHEETS
+// ═══════════════════════════════════════════════════════════
+function submitScores() {
+  const role = ROLES[currentUser];
+  const entries = [];
+  let incomplete = [];
+
+  role.reports.forEach(key => {
+    const sc   = localDraft[key] || {};
+    const ig   = sc.ig_score, comp = sc.comp_score, att = sc.att_score;
+    if (!ig || !comp || !att) { incomplete.push(MEMBERS[key].name); return; }
+    const total = calcTotal(ig, comp, att);
+    const kual  = getKual(total);
+    entries.push({
+      submitted_by:  currentUser,
+      member_key:    key,
+      member_name:   MEMBERS[key].name,
+      ig_score:      parseFloat(ig),
+      ig_evidence:   sc.ig_evidence   || '',
+      comp_score:    parseFloat(comp),
+      comp_evidence: sc.comp_evidence || '',
+      att_score:     parseFloat(att),
+      att_evidence:  sc.att_evidence  || '',
+      total_score:   total,
+      kualifikasi:   kual ? kual.code : '—',
+    });
+  });
+
+  if (incomplete.length) {
+    toast('Lengkapi semua nilai untuk: ' + incomplete.join(', '), true);
+    return;
+  }
+  if (!entries.length) { toast('Tidak ada data untuk disimpan.', true); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengirim...';
+  setSyncStatus('syncing');
+
+  fetch(SHEET_URL, {
+    method: 'POST',
+    mode:   'no-cors',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ entries }),
+  })
+  .then(() => {
+    setSyncStatus('ok');
+    toast('✓ Data berhasil disimpan ke database!');
+    btn.disabled = false;
+    btn.textContent = '💾 Simpan & Kirim ke Database';
+  })
+  .catch(err => {
+    setSyncStatus('err');
+    toast('Gagal mengirim. Cek koneksi internet.', true);
+    btn.disabled = false;
+    btn.textContent = '💾 Simpan & Kirim ke Database';
+  });
+}
+
+function setSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (state === 'ok')      { el.textContent='● Tersimpan'; el.className='sync-status ok'; }
+  else if (state === 'err'){ el.textContent='● Gagal';     el.className='sync-status err'; }
+  else if (state === 'syncing'){ el.textContent='● Menyimpan...'; el.className='sync-status'; }
+  else                     { el.textContent='● Offline';   el.className='sync-status'; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERVIEW — GM ONLY
+// ═══════════════════════════════════════════════════════════
+function loadOverview() {
+  document.getElementById('overview-body').innerHTML =
+    '<tr><td colspan="10"><div class="loading"><div class="spinner"></div> Memuat data dari Google Sheets...</div></td></tr>';
+  document.getElementById('gm-kpis').innerHTML = '';
+
+  fetch(SHEET_URL + '?t=' + Date.now())
+  .then(r => r.json())
+  .then(res => {
+    if (res.status !== 'ok') throw new Error('API error');
+    renderOverviewTable(res.data);
+  })
+  .catch(() => {
+    document.getElementById('overview-body').innerHTML =
+      '<tr><td colspan="10" style="color:var(--red);font-family:var(--mono);font-size:12px;padding:20px">Gagal memuat data. Pastikan Google Apps Script sudah di-deploy dengan benar.</td></tr>';
+  });
+}
+
+function renderOverviewTable(rows) {
+  // Build map: member_key → latest row
+  const dataMap = {};
+  rows.forEach(r => {
+    if (!dataMap[r.member_key] || new Date(r.timestamp) > new Date(dataMap[r.member_key].timestamp)) {
+      dataMap[r.member_key] = r;
+    }
+  });
+
+  // KPIs
+  const allKeys = Object.keys(MEMBERS);
+  const filled  = allKeys.filter(k => dataMap[k]).length;
+  const totals  = allKeys.filter(k => dataMap[k]).map(k => parseFloat(dataMap[k].total_score));
+  const avg     = totals.length ? (totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1) : '—';
+  const p12     = totals.filter(t => t >= 110).length;
+
+  document.getElementById('gm-kpis').innerHTML = `
+    <div class="kpi-box"><div class="kpi-label">Total Anggota</div><div class="kpi-val">${allKeys.length}</div><div class="kpi-sub">Termasuk 3 Manager</div></div>
+    <div class="kpi-box"><div class="kpi-label">Sudah Submit</div><div class="kpi-val">${filled}</div><div class="kpi-sub">dari ${allKeys.length}</div></div>
+    <div class="kpi-box"><div class="kpi-label">Avg Score</div><div class="kpi-val">${avg}</div><div class="kpi-sub">Semua yang sudah submit</div></div>
+    <div class="kpi-box"><div class="kpi-label">P1 + P2</div><div class="kpi-val">${p12}</div><div class="kpi-sub">Score ≥ 110</div></div>
+  `;
+
+  // Table grouped by manager
+  const groupOrder = [
+    { mgrKey:'gm',      label:'Direct Reports GM (Yoga)' },
+    { mgrKey:'gatot',   label:'Tim Gatot' },
+    { mgrKey:'basyuni', label:'Tim Basyuni' },
+    { mgrKey:'zaki',    label:'Tim Zaki' },
+  ];
+
+  let tableHtml = '';
+  groupOrder.forEach(g => {
+    const members = allKeys.filter(k => MEMBERS[k].manager === g.mgrKey);
+    if (!members.length) return;
+    tableHtml += `<tr class="td-group"><td colspan="10">${g.label}</td></tr>`;
+    members.forEach(key => {
+      const m   = MEMBERS[key];
+      const d   = dataMap[key];
+      if (!d) {
+        tableHtml += `<tr>
+          <td><strong>${m.name}</strong></td>
+          <td><span class="badge b-band">${m.band}</span></td>
+          <td style="color:var(--g400);font-size:11px">${g.label.replace('Tim ','').replace('Direct Reports ','')}</td>
+          <td colspan="7" style="color:var(--g400);font-family:var(--mono);font-size:11px">— Belum submit —</td>
+        </tr>`; return;
+      }
+      const total = parseFloat(d.total_score);
+      const kual  = getFairKual(d.ig_score, d.comp_score, d.att_score);
+      const anal  = analyzeEligibility(d, total);
+      const eligBadge = anal
+        ? `<span class="badge ${anal.status==='eligible'?'b-elig':anal.status==='warning'?'b-warn':'b-inelig'}">${anal.status==='eligible'?'Eligible':anal.status==='warning'?'Review':'Not Eligible'}</span>`
+        : '<span class="badge b-na">—</span>';
+      const ts = d.timestamp ? new Date(d.timestamp).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+
+      tableHtml += `<tr>
+        <td><strong>${m.name}</strong></td>
+        <td><span class="badge b-band">${m.band}</span></td>
+        <td style="font-size:11px;color:var(--g600)">${g.label.replace('Tim ','').replace('Direct Reports ','')}</td>
+        <td class="td-mono">${parseFloat(d.ig_score).toFixed(1)}%
+          ${d.ig_evidence ? `<div class="evidence-preview" title="${d.ig_evidence}">${d.ig_evidence}</div>` : ''}
+        </td>
+        <td class="td-mono">+${parseFloat(d.comp_score).toFixed(0)}%
+          ${d.comp_evidence ? `<div class="evidence-preview" title="${d.comp_evidence}">${d.comp_evidence}</div>` : ''}
+        </td>
+        <td class="td-mono">+${parseFloat(d.att_score).toFixed(0)}%
+          ${d.att_evidence ? `<div class="evidence-preview" title="${d.att_evidence}">${d.att_evidence}</div>` : ''}
+        </td>
+        <td class="td-mono" style="font-weight:700;font-size:15px">${total.toFixed(1)}</td>
+        <td>${kual ? `<span class="badge ${kual.cls}">${kual.code}</span>` : '—'}</td>
+        <td>${eligBadge}</td>
+        <td style="font-size:10px;color:var(--g400);font-family:var(--mono)">${ts}</td>
+      </tr>
+      ${anal ? `<tr style="background:#f9f9f9"><td colspan="10" style="padding:4px 12px 10px;font-size:11px">
+        ${anal.checks.map(c=>`<span style="margin-right:14px;color:${c.ok?'var(--green)':'var(--red)'}">${c.ok?'✓':'✗'} ${c.label}</span>`).join('')}
+      </td></tr>` : ''}`;
+    });
+  });
+  document.getElementById('overview-body').innerHTML = tableHtml;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARAM LIST
+// ═══════════════════════════════════════════════════════════
+function renderParamList() {
+  document.getElementById('param-list').innerHTML = PARAM.map(p => `
+    <div class="param-card" style="border-left:4px solid ${p.color}">
+      <div>
+        <div class="param-code" style="color:${p.color}">${p.code}</div>
+        <div class="param-range" style="color:${p.color}">${p.range}</div>
+      </div>
+      <div class="param-criteria">
+        <ul>${p.prereq.map(r=>`<li>${r}</li>`).join('')}</ul>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD — Pure HTML/SVG, no external library
+// ═══════════════════════════════════════════════════════════
+function renderDashboard() {
+  renderManagerAlerts();
+  renderPerfChart();
+  renderCurrentChart();
+}
+
+function renderManagerAlerts() {
+  const scores = loadScores();
+  const managerKeys = ['gatot', 'basyuni', 'zaki'];
+  const box = document.getElementById('mgr-alert-box');
+  let alerts = [];
+
+  managerKeys.forEach(key => {
+    const sc = scores[key] || {};
+    const currentScore = sc.ig_score ? parseFloat(sc.ig_score) : null;
+    const result = checkManagerAlert(key, currentScore);
+    if (result) {
+      alerts.push({ key, name: MEMBERS[key].name, periods: result, currentScore });
+    }
+  });
+
+  if (!alerts.length) { box.innerHTML = ''; return; }
+
+  let html = '';
+  alerts.forEach(a => {
+    const periodList = a.periods.map(p =>
+      `<div style="display:inline-flex;gap:8px;align-items:center;
+        background:#fff;border:1px solid #fed7aa;border-radius:3px;
+        padding:4px 10px;margin:3px 6px 3px 0;font-size:12px;">
+        <strong>${p.period}</strong>
+        <span style="color:#9a3412">${p.score}%</span>
+        <span style="color:#888">vs avg peers</span>
+        <strong style="color:#9a3412">${p.avgOthers}%</strong>
+        <span style="background:#fee2e2;color:#b91c1c;padding:1px 5px;border-radius:2px;font-size:11px">
+          −${p.gap}pt
+        </span>
+      </div>`).join('');
+
+    html += `<div style="background:#fff8f0;border:1px solid #f97316;border-left:4px solid #f97316;
+      border-radius:4px;padding:16px 20px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px">⚠️</span>
+        <span style="font-weight:700;font-size:14px;color:#9a3412">
+          Perhatian VP — ${a.name} konsisten di bawah rata-rata peer manager
+        </span>
+      </div>
+      <div style="margin-bottom:10px;flex-wrap:wrap;display:flex">${periodList}</div>
+      <div style="font-size:12px;color:#333;background:#fff;
+        padding:10px 14px;border-radius:3px;border:1px solid #fed7aa;line-height:1.7">
+        💡 <strong>Rekomendasi:</strong> ${a.name} telah <strong>${a.periods.length} periode berturut-turut</strong> 
+        mencatatkan skor di bawah rata-rata rekan manager lainnya. 
+        VP disarankan melakukan <em>coaching conversation</em> untuk mengidentifikasi root cause 
+        dan menyusun rencana pengembangan yang terstruktur sebelum finalisasi kualifikasi.
+      </div>
+    </div>`;
+  });
+
+  box.innerHTML = html;
+}
+
+function renderPerfChart() {
+  const scores  = loadScores();
+  const allKeys = Object.keys(MEMBERS);
+  const periods = [...HISTORICAL.periods, 'H1-2026'];
+  const periodColors = ['#9ca3af','#6b7280','#60a5fa','#34d399','#e63329'];
+  const MIN_SCORE = 100, MAX_SCORE = 125;
+  const BAR_W = 14, GROUP_GAP = 18, PERIOD_GAP = 3;
+  const CHART_H = 280, LABEL_H = 40, YAXIS_W = 48, TOP_PAD = 20;
+  const nMembers = allKeys.length;
+  const groupW = periods.length * (BAR_W + PERIOD_GAP) - PERIOD_GAP + GROUP_GAP;
+  const totalW = YAXIS_W + nMembers * groupW + 20;
+
+  // Y gridlines
+  const yLines = [100,105,110,115,120,125];
+  let gridHtml = yLines.map(v => {
+    const y = TOP_PAD + CHART_H - ((v - MIN_SCORE) / (MAX_SCORE - MIN_SCORE)) * CHART_H;
+    const isMain = v % 5 === 0;
+    return `<line x1="${YAXIS_W}" y1="${y}" x2="${totalW}" y2="${y}"
+      stroke="${isMain?'#e5e7eb':'#f3f4f6'}" stroke-width="${isMain?1:0.5}"/>
+      <text x="${YAXIS_W-6}" y="${y+4}" text-anchor="end" font-size="10"
+        font-family="monospace" fill="#9ca3af">${v}%</text>`;
+  }).join('');
+
+  // Bars
+  let barsHtml = '';
+  allKeys.forEach((key, mi) => {
+    const gx = YAXIS_W + mi * groupW + 10;
+    const name = MEMBERS[key].name;
+    periods.forEach((period, pi) => {
+      let score;
+      if (pi < 4) {
+        score = HISTORICAL.scores[key][pi];
+      } else {
+        const sc = scores[key] || {};
+        score = (sc.ig_score && sc.comp_score && sc.att_score)
+          ? calcTotal(sc.ig_score, sc.comp_score, sc.att_score) : null;
+      }
+      if (!score) return;
+      const clampedScore = Math.min(Math.max(score, MIN_SCORE), MAX_SCORE);
+      const barH = ((clampedScore - MIN_SCORE) / (MAX_SCORE - MIN_SCORE)) * CHART_H;
+      const x = gx + pi * (BAR_W + PERIOD_GAP);
+      const y = TOP_PAD + CHART_H - barH;
+      const isActive = pi === 4;
+      const activeLabel = isActive ? '<text x="'+(x+BAR_W/2)+'" y="'+(y-4)+'" text-anchor="middle" font-size="9" font-family="monospace" fill="#e63329" font-weight="600">'+score+'%</text>' : '';
+      const opacity = isActive ? '1' : '0.75';
+      const strokeAttr = isActive ? 'stroke="#b52720" stroke-width="1.5"' : '';
+      barsHtml += '<g><rect x="'+x+'" y="'+y+'" width="'+BAR_W+'" height="'+barH+'" fill="'+periodColors[pi]+'" rx="2" opacity="'+opacity+'" '+strokeAttr+'><title>'+name+' '+period+': '+score+'%</title></rect>'+activeLabel+'</g>';
+    });
+    // Member label
+    const lx = gx + (periods.length * (BAR_W + PERIOD_GAP)) / 2 - PERIOD_GAP/2;
+    barsHtml += `<text x="${lx}" y="${TOP_PAD + CHART_H + 16}"
+      text-anchor="middle" font-size="10" font-family="monospace" fill="#374151">${name}</text>`;
+  });
+
+  // Legend
+  const legendY = TOP_PAD + CHART_H + LABEL_H + 8;
+  let legendHtml = periods.map((p, i) =>
+    `<g transform="translate(${YAXIS_W + i*100}, ${legendY})">
+      <rect width="12" height="12" fill="${periodColors[i]}" rx="2"/>
+      <text x="16" y="10" font-size="10" font-family="monospace" fill="#374151">${p}</text>
+    </g>`
+  ).join('');
+
+  const svgH = legendY + 20;
+  document.getElementById('perfChart').innerHTML = '<svg width="100%" viewBox="0 0 '+totalW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" style="min-width:'+totalW+'px">'+gridHtml+barsHtml+legendHtml+'</svg>';
+}
+
+function renderCurrentChart() {
+  const scores  = loadScores();
+  const allKeys = Object.keys(MEMBERS);
+  const MIN_SCORE = 100, MAX_SCORE = 125;
+  const BAR_W = 36, BAR_GAP = 20;
+  const CHART_H = 220, LABEL_H = 36, YAXIS_W = 48, TOP_PAD = 24;
+  const kualColors = {
+    P1:'#15803d', P2:'#1d4ed8', P3a:'#854d0e',
+    P3b:'#b91c1c', P3c:'#4b5563', P4:'#9d174d'
+  };
+  const totalW = YAXIS_W + allKeys.length * (BAR_W + BAR_GAP) + 20;
+
+  // Y gridlines
+  const yLines = [100,105,110,115,120,125];
+  let gridHtml = yLines.map(v => {
+    const y = TOP_PAD + CHART_H - ((v - MIN_SCORE)/(MAX_SCORE - MIN_SCORE)) * CHART_H;
+    return `<line x1="${YAXIS_W}" y1="${y}" x2="${totalW}" y2="${y}"
+      stroke="${v%5===0?'#e5e7eb':'#f9fafb'}" stroke-width="${v%5===0?1:0.5}"/>
+      <text x="${YAXIS_W-6}" y="${y+4}" text-anchor="end" font-size="10"
+        font-family="monospace" fill="#9ca3af">${v}%</text>`;
+  }).join('');
+
+  let barsHtml = '';
+  allKeys.forEach((key, i) => {
+    const sc = scores[key] || {};
+    const hasData = sc.ig_score && sc.comp_score && sc.att_score;
+    const total = hasData ? calcTotal(sc.ig_score, sc.comp_score, sc.att_score) : null;
+    const kual  = total ? getFairKual(sc.ig_score, sc.comp_score, sc.att_score) : null;
+    const color = kual ? (kualColors[kual.code]||'#9ca3af') : '#e5e7eb';
+    const x = YAXIS_W + i * (BAR_W + BAR_GAP) + 10;
+    const name = MEMBERS[key].name;
+
+    if (total) {
+      const clamp = Math.min(Math.max(total, MIN_SCORE), MAX_SCORE);
+      const barH = ((clamp - MIN_SCORE)/(MAX_SCORE - MIN_SCORE)) * CHART_H;
+      const y = TOP_PAD + CHART_H - barH;
+      barsHtml += `<g>
+        <rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}"
+          fill="${color}" rx="3" opacity="0.85">
+          <title>${name}: ${total}% (${kual?kual.code:'—'})&#10;IG: ${sc.ig_score}% | Comp: +${sc.comp_score}% | Att: +${sc.att_score}%</title>
+        </rect>
+        <text x="${x+BAR_W/2}" y="${y-6}" text-anchor="middle"
+          font-size="10" font-family="monospace" fill="${color}" font-weight="700">${total.toFixed(1)}</text>
+        <text x="${x+BAR_W/2}" y="${y+14}" text-anchor="middle"
+          font-size="9" font-family="monospace" fill="#fff" font-weight="600">${kual?kual.code:''}</text>
+      </g>`;
+    } else {
+      const y = TOP_PAD + CHART_H - 20;
+      barsHtml += `<g>
+        <rect x="${x}" y="${y}" width="${BAR_W}" height="20" fill="#f3f4f6" rx="3"/>
+        <text x="${x+BAR_W/2}" y="${y+13}" text-anchor="middle"
+          font-size="9" font-family="monospace" fill="#9ca3af">—</text>
+      </g>`;
+    }
+    barsHtml += `<text x="${x+BAR_W/2}" y="${TOP_PAD+CHART_H+16}"
+      text-anchor="middle" font-size="10" font-family="monospace" fill="#374151">${name}</text>`;
+  });
+
+  // Legend
+  const legendY = TOP_PAD + CHART_H + LABEL_H + 10;
+  const kualEntries = [['P1','#15803d'],['P2','#1d4ed8'],['P3a','#854d0e'],['P3b','#b91c1c'],['P3c','#4b5563']];
+  const legendHtml = kualEntries.map((e,i) =>
+    `<g transform="translate(${YAXIS_W + i*72}, ${legendY})">
+      <rect width="12" height="12" fill="${e[1]}" rx="2"/>
+      <text x="16" y="10" font-size="10" font-family="monospace" fill="#374151">${e[0]}</text>
+    </g>`
+  ).join('');
+
+  const svgH = legendY + 22;
+  document.getElementById('currentChart').innerHTML = '<svg width="100%" viewBox="0 0 '+totalW+' '+svgH+'" xmlns="http://www.w3.org/2000/svg" style="min-width:'+totalW+'px">'+gridHtml+barsHtml+legendHtml+'</svg>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = (isErr ? 'err ' : '') + 'show';
+  setTimeout(() => t.className = '', 3000);
+}
+</script>
+</body>
+</html>
