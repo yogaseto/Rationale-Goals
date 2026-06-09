@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -216,18 +217,18 @@ tr:hover td{background:#f9f9f9;}
 
     <!-- OVERVIEW -->
     <div class="sheet" id="sheet-overview">
-      <p class="section-title">Overview Semua Skor — GM View</p>
+      <p class="section-title" id="overview-title">Overview Semua Skor — GM View</p>
       <div id="mgr-alert-box"></div>
       <div class="kpi-row" id="gm-kpis"></div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
         <button class="btn-save" onclick="loadOverview()" style="background:var(--g900)">↻ Refresh Data</button>
       </div>
       <div class="card">
-        <div class="card-title">Rekapitulasi Inisial Skor H1/2026</div>
+        <div class="card-title" id="overview-card-title">Rekapitulasi Inisial Skor H1/2026</div>
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Nama</th><th>Band</th><th>Atasan</th>
+              <th>Nama</th><th>Band</th><th>Manager</th>
               <th>IG Score</th><th>Competency</th><th>Attitude</th>
               <th>Total</th><th>Kualifikasi</th><th>Eligibilitas</th>
               <th>Last Update</th>
@@ -251,9 +252,17 @@ tr:hover td{background:#f9f9f9;}
 // ═══════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx7cG4nzyl55T97-ti_M547xxQ2TcLI18xIafYEGkZNxiGNf7mq5VYMh5mUjyiEe9Xg/exec';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyo9nNM02wZAqba2Qwv8h8b0WEuGDO5ARR6q05cKqHWpUi18P6eVh6zygbpxj_QYzVJ/exec';
 
 const PINS = { gm:'gm2025', gatot:'gtot01', basyuni:'bsyn01', zaki:'zki001' };
+
+// Active period — stored in localStorage, default H1/2026
+function getActivePeriod() {
+  return localStorage.getItem('active_period') || 'H1/2026';
+}
+function setActivePeriod(p) {
+  localStorage.setItem('active_period', p);
+}
 
 const ROLES = {
   gm:      { label:'GM (Yoga)', reports:['gatot','basyuni','zaki'], isGM:true },
@@ -386,7 +395,7 @@ let currentUser = null;
 // Local draft cache — in case network is slow, user can still type
 let localDraft = {};
 
-function draftKey() { return 'draft_' + currentUser; }
+function draftKey() { return 'draft_' + currentUser + '_' + getActivePeriod().replace('/','_'); }
 function loadDraft() {
   try { return JSON.parse(localStorage.getItem(draftKey()) || '{}'); } catch(e) { return {}; }
 }
@@ -657,13 +666,64 @@ function analyzeEligibility(sc, total) {
 // ═══════════════════════════════════════════════════════════
 // RENDER INPUT SHEET
 // ═══════════════════════════════════════════════════════════
+function switchPeriod(newPeriod) {
+  const current = getActivePeriod();
+  if (current === newPeriod) return;
+
+  // Confirm before switching
+  const msg = newPeriod === 'H2/2026'
+    ? 'Beralih ke periode H2/2026? Data H1/2026 tetap tersimpan di Google Sheets dan bisa dilihat kembali.'
+    : 'Beralih kembali ke H1/2026? Data H2/2026 yang sudah diinput tetap tersimpan.';
+
+  if (!confirm(msg)) return;
+
+  setActivePeriod(newPeriod);
+  // Clear local draft for new period
+  localDraft = {};
+  saveDraft(localDraft);
+  // Update header title
+  document.querySelector('header h1').textContent = 'Goals Initial Score — ' + newPeriod;
+  // Re-render input sheet
+  renderInputSheet();
+  // Update overview if open
+  var overviewSheet = document.getElementById('sheet-overview');
+  if (overviewSheet && overviewSheet.classList.contains('active')) loadOverview();
+  toast('Periode berubah ke ' + newPeriod);
+}
+
 function renderInputSheet() {
   const role = ROLES[currentUser];
   document.getElementById('input-label').textContent =
     role.isGM ? 'Input Inisial Skor — Direct Reports GM'
               : `Input Inisial Skor — Tim ${role.label}`;
 
-  let html = `<div class="save-bar">
+  const activePeriod = getActivePeriod();
+  const isGM = ROLES[currentUser].isGM;
+  const periodSwitcher = isGM ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;
+      background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;margin-bottom:12px;">
+      <span style="font-size:12px;color:#166534;font-family:var(--mono)">
+        ● Periode aktif: <strong>${activePeriod}</strong>
+      </span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button onclick="switchPeriod('H1/2026')"
+          style="font-family:var(--mono);font-size:11px;padding:5px 14px;border-radius:3px;cursor:pointer;
+          border:1px solid ${activePeriod==='H1/2026'?'#16a34a':'#d1d5db'};
+          background:${activePeriod==='H1/2026'?'#16a34a':'#fff'};
+          color:${activePeriod==='H1/2026'?'#fff':'#374151'};font-weight:600">
+          H1/2026
+        </button>
+        <button onclick="switchPeriod('H2/2026')"
+          style="font-family:var(--mono);font-size:11px;padding:5px 14px;border-radius:3px;cursor:pointer;
+          border:1px solid ${activePeriod==='H2/2026'?'#16a34a':'#d1d5db'};
+          background:${activePeriod==='H2/2026'?'#16a34a':'#fff'};
+          color:${activePeriod==='H2/2026'?'#fff':'#374151'};font-weight:600">
+          H2/2026
+        </button>
+      </div>
+    </div>` : '';
+
+  let html = periodSwitcher + `<div class="save-bar">
     <p>Lengkapi IG Score, Competency, Attitude beserta evidence untuk setiap anggota tim. Klik <strong>Simpan & Kirim</strong> setelah selesai.</p>
     <button class="btn-save" id="btn-submit" onclick="submitScores()">💾 Simpan & Kirim ke Database</button>
   </div>`;
@@ -902,6 +962,7 @@ function submitScores() {
       submitted_by:  currentUser,
       member_key:    key,
       member_name:   MEMBERS[key].name,
+      period:        getActivePeriod(),
       ig_score:      parseFloat(ig),
       ig_evidence:   sc.ig_evidence   || '',
       comp_score:    parseFloat(comp),
@@ -1008,9 +1069,19 @@ function loadOverview() {
 }
 
 function renderOverviewTable(rows) {
-  // Build map: member_key → latest row
+  // Build map: member_key → latest row FOR ACTIVE PERIOD
+  const activePeriod = getActivePeriod();
+  // Update titles
+  const overviewTitle = document.getElementById('overview-title');
+  if (overviewTitle) overviewTitle.textContent = 'Overview Semua Skor — ' + activePeriod;
+  const cardTitle = document.getElementById('overview-card-title');
+  if (cardTitle) cardTitle.textContent = 'Rekapitulasi Inisial Skor ' + activePeriod;
+
   const dataMap = {};
   rows.forEach(r => {
+    // Filter by active period (support both old data without period field and new data)
+    const rowPeriod = r.period || 'H1/2026';
+    if (rowPeriod !== activePeriod) return;
     if (!dataMap[r.member_key] || new Date(r.timestamp) > new Date(dataMap[r.member_key].timestamp)) {
       dataMap[r.member_key] = r;
     }
