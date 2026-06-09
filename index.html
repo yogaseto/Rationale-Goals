@@ -180,6 +180,19 @@ tr:hover td{background:#f9f9f9;}
       <option value="basyuni">Basyuni — Manager</option>
       <option value="zaki">Zaki — Manager</option>
     </select>
+    <label>Periode Penilaian</label>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="btn-period-h1" onclick="selectLoginPeriod('H1/2026',this)"
+        style="flex:1;font-family:var(--mono);font-size:12px;padding:9px;border-radius:3px;
+        cursor:pointer;border:1px solid #e63329;background:#e63329;color:#fff;font-weight:600">
+        H1/2026
+      </button>
+      <button id="btn-period-h2" onclick="selectLoginPeriod('H2/2026',this)"
+        style="flex:1;font-family:var(--mono);font-size:12px;padding:9px;border-radius:3px;
+        cursor:pointer;border:1px solid #444;background:transparent;color:#888;font-weight:600">
+        H2/2026
+      </button>
+    </div>
     <label>PIN</label>
     <input type="password" id="login-pin" placeholder="Masukkan PIN"
       onkeydown="if(event.key==='Enter')doLogin()">
@@ -404,6 +417,20 @@ function saveDraft(d) { localStorage.setItem(draftKey(), JSON.stringify(d)); }
 // ═══════════════════════════════════════════════════════════
 // LOGIN / LOGOUT
 // ═══════════════════════════════════════════════════════════
+function selectLoginPeriod(period, btn) {
+  setActivePeriod(period);
+  // Update button styles
+  const h1btn = document.getElementById('btn-period-h1');
+  const h2btn = document.getElementById('btn-period-h2');
+  if (period === 'H1/2026') {
+    h1btn.style.background = '#e63329'; h1btn.style.color = '#fff'; h1btn.style.borderColor = '#e63329';
+    h2btn.style.background = 'transparent'; h2btn.style.color = '#888'; h2btn.style.borderColor = '#444';
+  } else {
+    h2btn.style.background = '#e63329'; h2btn.style.color = '#fff'; h2btn.style.borderColor = '#e63329';
+    h1btn.style.background = 'transparent'; h1btn.style.color = '#888'; h1btn.style.borderColor = '#444';
+  }
+}
+
 function doLogin() {
   const user = document.getElementById('login-user').value;
   const pin  = document.getElementById('login-pin').value;
@@ -416,6 +443,8 @@ function doLogin() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('disp-user').textContent = ROLES[user].label;
+  // Update header title with active period
+  document.querySelector('header h1').textContent = 'Goals Initial Score — ' + getActivePeriod();
   if (ROLES[user].isGM) {
     document.querySelectorAll('.gm-only').forEach(el => el.style.display = '');
   }
@@ -428,6 +457,21 @@ function showErr(msg) {
   err.textContent = msg;
   err.style.display = 'block';
 }
+
+// Init period buttons on page load to reflect saved period
+(function initPeriodButtons() {
+  const saved = getActivePeriod();
+  if (saved === 'H2/2026') {
+    setTimeout(function() {
+      const h1btn = document.getElementById('btn-period-h1');
+      const h2btn = document.getElementById('btn-period-h2');
+      if (h1btn && h2btn) {
+        h1btn.style.background = 'transparent'; h1btn.style.color = '#888'; h1btn.style.borderColor = '#444';
+        h2btn.style.background = '#e63329'; h2btn.style.color = '#fff'; h2btn.style.borderColor = '#e63329';
+      }
+    }, 100);
+  }
+})();
 
 function doLogout() {
   currentUser = null; localDraft = {};
@@ -698,32 +742,7 @@ function renderInputSheet() {
               : `Input Inisial Skor — Tim ${role.label}`;
 
   const activePeriod = getActivePeriod();
-  const isGM = ROLES[currentUser].isGM;
-  const periodSwitcher = isGM ? `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;
-      background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;margin-bottom:12px;">
-      <span style="font-size:12px;color:#166534;font-family:var(--mono)">
-        ● Periode aktif: <strong>${activePeriod}</strong>
-      </span>
-      <div style="margin-left:auto;display:flex;gap:8px">
-        <button onclick="switchPeriod('H1/2026')"
-          style="font-family:var(--mono);font-size:11px;padding:5px 14px;border-radius:3px;cursor:pointer;
-          border:1px solid ${activePeriod==='H1/2026'?'#16a34a':'#d1d5db'};
-          background:${activePeriod==='H1/2026'?'#16a34a':'#fff'};
-          color:${activePeriod==='H1/2026'?'#fff':'#374151'};font-weight:600">
-          H1/2026
-        </button>
-        <button onclick="switchPeriod('H2/2026')"
-          style="font-family:var(--mono);font-size:11px;padding:5px 14px;border-radius:3px;cursor:pointer;
-          border:1px solid ${activePeriod==='H2/2026'?'#16a34a':'#d1d5db'};
-          background:${activePeriod==='H2/2026'?'#16a34a':'#fff'};
-          color:${activePeriod==='H2/2026'?'#fff':'#374151'};font-weight:600">
-          H2/2026
-        </button>
-      </div>
-    </div>` : '';
-
-  let html = periodSwitcher + `<div class="save-bar">
+  let html = `<div class="save-bar">
     <p>Lengkapi IG Score, Competency, Attitude beserta evidence untuk setiap anggota tim. Klik <strong>Simpan & Kirim</strong> setelah selesai.</p>
     <button class="btn-save" id="btn-submit" onclick="submitScores()">💾 Simpan & Kirim ke Database</button>
   </div>`;
