@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -150,6 +151,41 @@ tr:hover td{background:#f9f9f9;}
 .spinner{width:16px;height:16px;border:2px solid var(--g200);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* FLOATING SAVE BUTTON */
+#floating-save{
+  position:fixed;
+  bottom:28px;
+  right:28px;
+  z-index:200;
+  display:none;
+}
+#floating-save button{
+  background:var(--red);
+  color:var(--white);
+  border:none;
+  font-family:var(--mono);
+  font-size:12px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  padding:14px 28px;
+  border-radius:40px;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(230,51,41,0.4);
+  transition:all .2s;
+}
+#floating-save button:hover{
+  background:var(--red-dark);
+  box-shadow:0 6px 24px rgba(230,51,41,0.5);
+  transform:translateY(-1px);
+}
+#floating-save button:disabled{
+  background:#ccc;
+  box-shadow:none;
+  cursor:not-allowed;
+  transform:none;
+}
+
 /* TOAST */
 #toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--white);font-family:var(--mono);font-size:12px;padding:10px 18px;border-radius:4px;border-left:3px solid var(--green);opacity:0;transform:translateY(10px);transition:all .2s;pointer-events:none;z-index:999;max-width:320px;}
 #toast.show{opacity:1;transform:translateY(0);}
@@ -256,6 +292,11 @@ tr:hover td{background:#f9f9f9;}
       <div id="param-list"></div>
     </div>
   </main>
+</div>
+
+<!-- FLOATING SAVE BUTTON -->
+<div id="floating-save">
+  <button id="btn-submit" onclick="submitScores()">💾 Simpan & Kirim ke Database</button>
 </div>
 
 <div id="toast"></div>
@@ -444,6 +485,9 @@ function doLogin() {
   document.getElementById('disp-user').textContent = ROLES[user].label;
   // Update header title with active period
   document.querySelector('header h1').textContent = 'Goals Initial Score — ' + getActivePeriod();
+  // Show floating save button (input tab is default on login)
+  var floatBtn = document.getElementById('floating-save');
+  if (floatBtn) floatBtn.style.display = 'block';
   if (ROLES[user].isGM) {
     document.querySelectorAll('.gm-only').forEach(el => el.style.display = '');
   }
@@ -483,6 +527,8 @@ function doLogout() {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-btn')[0].classList.add('active');
   document.querySelectorAll('.gm-only').forEach(el => el.style.display = 'none');
+  var floatBtn = document.getElementById('floating-save');
+  if (floatBtn) floatBtn.style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -494,6 +540,9 @@ function showSheet(id, btn) {
   document.getElementById('sheet-' + id).classList.add('active');
   if (btn) btn.classList.add('active');
   if (id === 'overview') loadOverview();
+  // Show floating save button only on input sheet
+  var floatBtn = document.getElementById('floating-save');
+  if (floatBtn) floatBtn.style.display = (id === 'input') ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -741,9 +790,8 @@ function renderInputSheet() {
               : `Input Inisial Skor — Tim ${role.label}`;
 
   const activePeriod = getActivePeriod();
-  let html = `<div class="save-bar">
-    <p>Lengkapi IG Score, Competency, Attitude beserta evidence untuk setiap anggota tim. Klik <strong>Simpan & Kirim</strong> setelah selesai.</p>
-    <button class="btn-save" id="btn-submit" onclick="submitScores()">💾 Simpan & Kirim ke Database</button>
+  let html = `<div style="font-size:12px;color:var(--g600);padding:10px 0 16px;font-family:var(--mono)">
+    Periode: <strong>${activePeriod}</strong> — Lengkapi IG Score, Competency, dan Attitude beserta evidence untuk setiap anggota tim.
   </div>`;
 
   role.reports.forEach(key => {
